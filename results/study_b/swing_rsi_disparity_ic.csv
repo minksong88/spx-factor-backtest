@@ -1,0 +1,8 @@
+signal,ic_fwd5d,ic_fwd10d,ic_fwd20d,ir_fwd10d,direction
+disparity_20d,0.055,0.041,0.035,0.28,continuation(+)
+disparity_60d,0.069,0.039,0.027,0.21,continuation(+)
+RSI20,0.066,0.039,0.033,0.27,continuation(+)
+RSI9,0.033,0.032,0.013,0.26,continuation(+)
+RSI14,0.048,0.028,0.023,0.20,continuation(+)
+disparity_10d,0.039,0.027,0.013,0.20,continuation(+)
+disparity_120d,0.033,0.021,0.026,0.11,continuation(+)
