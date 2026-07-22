@@ -1,0 +1,10 @@
+signal,ic_fwd10d,ic_std,ir,hit
+fcf_yield(high),0.012,0.088,0.14,0.57
+net_margin(high),0.010,0.087,0.11,0.60
+op_margin(high),0.009,0.084,0.11,0.55
+roic(high),0.005,0.039,0.13,0.57
+rev_eps_1m(up),0.003,0.089,0.03,0.59
+value_fwdPE(cheap),-0.001,0.101,-0.01,0.47
+rev_eps_3m(up),-0.004,0.092,-0.04,0.61
+ev_ebitda(cheap),-0.014,0.088,-0.16,0.43
+gross_margin(high),-0.015,0.108,-0.14,0.48
