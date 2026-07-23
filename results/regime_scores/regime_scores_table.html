@@ -1,0 +1,244 @@
+<title>국면별 ETF 롱숏 스코어 맵</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --panel:#ffffff; --ink:#191d27; --muted:#6b7280; --faint:#9aa1ad;
+    --line:#e4e7ec; --line-soft:#eef0f3; --row-hover:#f0f3f8;
+    --accent:#3a5ccc; --accent-soft:#e7ecfb;
+    --pos:#12855f; --pos-bar:#1aa06f; --neg:#c23a4b; --neg-bar:#d84a5c;
+    --axis:#c8cdd6;
+    --shadow:0 1px 2px rgba(20,28,50,.05),0 8px 24px rgba(20,28,50,.06);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0f1218; --panel:#161b24; --ink:#e7eaf0; --muted:#9aa3b2; --faint:#6b7482;
+      --line:#252c38; --line-soft:#1e242f; --row-hover:#1c2330;
+      --accent:#7b93ec; --accent-soft:#1e2740;
+      --pos:#3fce9a; --pos-bar:#25a578; --neg:#f27383; --neg-bar:#c9455a;
+      --axis:#3a424f;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#f5f6f8; --panel:#ffffff; --ink:#191d27; --muted:#6b7280; --faint:#9aa1ad;
+    --line:#e4e7ec; --line-soft:#eef0f3; --row-hover:#f0f3f8;
+    --accent:#3a5ccc; --accent-soft:#e7ecfb;
+    --pos:#12855f; --pos-bar:#1aa06f; --neg:#c23a4b; --neg-bar:#d84a5c;
+    --axis:#c8cdd6; --shadow:0 1px 2px rgba(20,28,50,.05),0 8px 24px rgba(20,28,50,.06);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f1218; --panel:#161b24; --ink:#e7eaf0; --muted:#9aa3b2; --faint:#6b7482;
+    --line:#252c38; --line-soft:#1e242f; --row-hover:#1c2330;
+    --accent:#7b93ec; --accent-soft:#1e2740;
+    --pos:#3fce9a; --pos-bar:#25a578; --neg:#f27383; --neg-bar:#c9455a;
+    --axis:#3a424f; --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    line-height:1.5;-webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:32px 20px 64px}
+  .num{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+
+  header.top{margin-bottom:22px}
+  .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:0 0 6px}
+  h1{font-size:clamp(22px,3.4vw,29px);line-height:1.15;margin:0 0 8px;letter-spacing:-.01em;text-wrap:balance}
+  .lede{color:var(--muted);font-size:14px;margin:0;max-width:64ch}
+  .lede b{color:var(--ink);font-weight:600}
+
+  /* read note */
+  .note{
+    margin:16px 0 22px;padding:12px 14px;border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:8px;background:var(--panel);font-size:12.5px;color:var(--muted);
+  }
+  .note ul{margin:0;padding-left:16px;display:grid;gap:3px}
+  .note b{color:var(--ink)}
+  .pos-ink{color:var(--pos);font-weight:700}
+  .neg-ink{color:var(--neg);font-weight:700}
+
+  /* tabs */
+  .tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:2px}
+  .tab{
+    flex:1 1 160px;min-width:150px;text-align:left;cursor:pointer;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:11px 13px;color:var(--ink);transition:border-color .15s,background .15s,transform .05s;
+    font:inherit;
+  }
+  .tab:hover{border-color:var(--axis)}
+  .tab:active{transform:translateY(1px)}
+  .tab .code{font-weight:800;font-size:13px;letter-spacing:.06em}
+  .tab .nm{font-size:13px;font-weight:600;margin-left:6px}
+  .tab .sub{display:block;font-size:11px;color:var(--faint);margin-top:3px;font-variant-numeric:tabular-nums}
+  .tab[aria-selected="true"]{border-color:var(--accent);background:var(--accent-soft)}
+  .tab[aria-selected="true"] .code{color:var(--accent)}
+  .tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  .desc{font-size:13px;color:var(--muted);margin:14px 2px 12px;min-height:20px}
+  .desc b{color:var(--ink);font-weight:600}
+
+  /* table */
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+  .scroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  thead th{
+    position:sticky;top:0;background:var(--panel);z-index:2;
+    text-align:right;padding:11px 14px;border-bottom:1px solid var(--line);
+    font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);
+    cursor:pointer;user-select:none;white-space:nowrap;font-weight:600;
+  }
+  thead th:first-child,thead th.tk{text-align:left}
+  thead th:hover{color:var(--ink)}
+  thead th .arw{display:inline-block;width:10px;margin-left:3px;color:var(--accent);font-size:10px}
+  thead th[aria-sort="none"] .arw{color:var(--faint);opacity:.5}
+  tbody td{padding:0 14px;height:36px;border-bottom:1px solid var(--line-soft);text-align:right;white-space:nowrap}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:var(--row-hover)}
+  td.rank{color:var(--faint);width:52px}
+  td.tk{text-align:left;font-weight:700;letter-spacing:.02em}
+  td.tk .lown{color:var(--faint);font-weight:600;font-size:11px;margin-left:5px}
+
+  /* beta cell: number + diverging bar from center */
+  td.beta{width:190px}
+  .betacell{display:flex;align-items:center;justify-content:flex-end;gap:12px}
+  .bval{width:46px;text-align:right;font-weight:700}
+  .bval.p{color:var(--pos)} .bval.n{color:var(--neg)}
+  .bar{position:relative;width:96px;height:14px;flex:0 0 auto}
+  .bar::before{content:"";position:absolute;left:50%;top:-1px;bottom:-1px;width:1px;background:var(--axis)}
+  .bar .fill{position:absolute;top:3px;height:8px;border-radius:2px}
+  .bar .fill.p{left:50%;background:var(--pos-bar)}
+  .bar .fill.n{right:50%;background:var(--neg-bar)}
+  td.avg{width:78px}
+  td.avg.p{color:var(--pos)} td.avg.n{color:var(--neg)}
+  td.n{width:60px;color:var(--muted)}
+
+  footer{margin-top:20px;font-size:12px;color:var(--faint);line-height:1.6}
+  footer code{background:var(--accent-soft);color:var(--accent);padding:1px 6px;border-radius:5px;font-size:11.5px}
+  .barkey{display:inline-flex;align-items:center;gap:5px;margin-right:14px}
+  .swatch{width:22px;height:8px;border-radius:2px;display:inline-block}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <p class="eyebrow">TIPS × BEI 4-QUADRANT REGIME MAP</p>
+    <h1>국면별 ETF 롱숏 스코어 맵</h1>
+    <p class="lede">실질금리(TIPS)×기대인플레(BEI) 4사분면 국면에서 각 ETF의 반응 스코어 <b>β</b>. β = 실질금리 1%p 움직일 때 자산의 % 반응 = mean(블록수익 / |Δ실질|). 전체표본 44블록 · 데이터 <b>2026-07-22</b>까지 · 유니버스 64종.</p>
+  </header>
+
+  <div class="note">
+    <ul>
+      <li><b>β 부호 = 방향.</b> <span class="pos-ink">양(+) = 롱 후보</span>, <span class="neg-ink">음(−) = 숏 후보</span>. 컬럼 헤더 클릭 → 오름/내림 정렬.</li>
+      <li><b>β 크기 비교는 같은 국면(탭) 안에서만.</b> 국면끼리 β 절대값 비교 금지(막대는 그 국면 최대치 기준 스케일).</li>
+      <li><b>블록수 작으면(≤7) 신뢰도 낮음</b> — 티커 옆 <span style="color:var(--faint)">ⁿ</span> 표시. 직전수익(리버설/모멘텀) 필터는 붙이지 말 것.</li>
+    </ul>
+  </div>
+
+  <div class="tabs" id="tabs" role="tablist" aria-label="국면 선택"></div>
+  <p class="desc" id="desc"></p>
+
+  <div class="card">
+    <div class="scroll">
+      <table id="tbl">
+        <thead>
+          <tr id="hrow">
+            <th data-k="rank" class="rk">순위<span class="arw"></span></th>
+            <th data-k="t" class="tk">티커<span class="arw"></span></th>
+            <th data-k="b">β 스코어<span class="arw"></span></th>
+            <th data-k="a">평균 %<span class="arw"></span></th>
+            <th data-k="n">블록수<span class="arw"></span></th>
+          </tr>
+        </thead>
+        <tbody id="tb"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    <div style="margin-bottom:8px">
+      <span class="barkey"><span class="swatch" style="background:var(--pos-bar)"></span>롱 후보 (β&gt;0)</span>
+      <span class="barkey"><span class="swatch" style="background:var(--neg-bar)"></span>숏 후보 (β&lt;0)</span>
+    </div>
+    국면 구간은 전체표본으로 확정(하인드사이트) → 실시간 매매성과와 다름, 방향표로만 사용 · gross(무비용).
+    재계산 코드 <code>src/regime_asset_scores.py</code> · 원자료 <code>results/regime_scores/regime_&lt;국면&gt;.csv</code>.
+  </footer>
+</div>
+
+<script>
+const DATA = {"RF": {"meta": {"name": "리플레이션", "sub": "실질↑ · BEI↑", "desc": "성장·인플레 동반 상승. 경기민감·에너지·금융 강세, 금·귀금속 약세."}, "rows": [{"t": "USO", "b": 0.25, "a": 10.7, "n": 13}, {"t": "KRE", "b": 0.23, "a": 8.3, "n": 13}, {"t": "KBE", "b": 0.22, "a": 8.2, "n": 13}, {"t": "BLOK", "b": 0.19, "a": 8.3, "n": 10}, {"t": "JETS", "b": 0.16, "a": 6.6, "n": 13}, {"t": "FNGS", "b": 0.16, "a": 7.5, "n": 8}, {"t": "XLF", "b": 0.16, "a": 6.5, "n": 13}, {"t": "BETZ", "b": 0.15, "a": 2.7, "n": 8}, {"t": "XRT", "b": 0.15, "a": 5.2, "n": 13}, {"t": "SOXX", "b": 0.14, "a": 4.0, "n": 13}, {"t": "PEJ", "b": 0.13, "a": 5.0, "n": 13}, {"t": "XLE", "b": 0.12, "a": 6.4, "n": 13}, {"t": "XME", "b": 0.12, "a": 4.4, "n": 13}, {"t": "QTUM", "b": 0.12, "a": 5.4, "n": 9}, {"t": "FCG", "b": 0.12, "a": 6.8, "n": 13}, {"t": "BITO", "b": 0.12, "a": 5.4, "n": 6}, {"t": "IJR", "b": 0.11, "a": 3.1, "n": 13}, {"t": "GRID", "b": 0.11, "a": 2.2, "n": 13}, {"t": "OIH", "b": 0.11, "a": 6.8, "n": 13}, {"t": "IYT", "b": 0.11, "a": 3.4, "n": 13}, {"t": "FDN", "b": 0.11, "a": 4.3, "n": 13}, {"t": "DRIV", "b": 0.11, "a": 1.6, "n": 9}, {"t": "SKYY", "b": 0.1, "a": 4.2, "n": 13}, {"t": "XLI", "b": 0.1, "a": 3.3, "n": 13}, {"t": "IWM", "b": 0.1, "a": 2.7, "n": 13}, {"t": "IJH", "b": 0.09, "a": 2.9, "n": 13}, {"t": "KIE", "b": 0.09, "a": 4.3, "n": 13}, {"t": "ITA", "b": 0.08, "a": 2.5, "n": 13}, {"t": "XLB", "b": 0.08, "a": 1.1, "n": 13}, {"t": "XLK", "b": 0.08, "a": 2.5, "n": 13}, {"t": "PBW", "b": 0.08, "a": -2.5, "n": 13}, {"t": "QQQ", "b": 0.08, "a": 2.6, "n": 13}, {"t": "XLY", "b": 0.08, "a": 2.6, "n": 13}, {"t": "IGV", "b": 0.07, "a": 2.4, "n": 13}, {"t": "FIW", "b": 0.07, "a": 1.5, "n": 13}, {"t": "FINX", "b": 0.07, "a": 0.8, "n": 13}, {"t": "COPX", "b": 0.07, "a": 2.8, "n": 13}, {"t": "XLC", "b": 0.07, "a": 3.8, "n": 9}, {"t": "SPY", "b": 0.06, "a": 2.1, "n": 13}, {"t": "ROBO", "b": 0.06, "a": 0.1, "n": 13}, {"t": "DIA", "b": 0.06, "a": 2.0, "n": 13}, {"t": "ARTY", "b": 0.06, "a": 0.8, "n": 9}, {"t": "CIBR", "b": 0.05, "a": 2.0, "n": 13}, {"t": "XHB", "b": 0.04, "a": 1.1, "n": 13}, {"t": "ITB", "b": 0.03, "a": -0.0, "n": 13}, {"t": "NLR", "b": 0.03, "a": 2.9, "n": 13}, {"t": "TAN", "b": 0.03, "a": -6.3, "n": 13}, {"t": "IHI", "b": 0.02, "a": -1.7, "n": 13}, {"t": "XBI", "b": 0.01, "a": -1.8, "n": 13}, {"t": "XLV", "b": -0.0, "a": -1.3, "n": 13}, {"t": "PBJ", "b": 0.0, "a": -0.5, "n": 13}, {"t": "IHE", "b": -0.01, "a": -1.9, "n": 13}, {"t": "IYZ", "b": -0.01, "a": -1.1, "n": 13}, {"t": "XLU", "b": -0.04, "a": -3.2, "n": 13}, {"t": "XLP", "b": -0.05, "a": -2.9, "n": 13}, {"t": "REZ", "b": -0.06, "a": -4.5, "n": 13}, {"t": "XLRE", "b": -0.09, "a": -5.8, "n": 13}, {"t": "GLD", "b": -0.1, "a": -3.9, "n": 13}, {"t": "RNRG", "b": -0.11, "a": -8.4, "n": 13}, {"t": "SRVR", "b": -0.13, "a": -8.9, "n": 9}, {"t": "SLV", "b": -0.14, "a": -5.4, "n": 13}, {"t": "UNG", "b": -0.15, "a": -6.7, "n": 13}, {"t": "SIL", "b": -0.21, "a": -9.8, "n": 13}, {"t": "GDX", "b": -0.22, "a": -9.9, "n": 13}]}, "ST": {"meta": {"name": "스태그·완화기대", "sub": "실질↓ · BEI↑", "desc": "실질금리 하락 + 기대인플레 상승. 실물·귀금속·성장 광범위 강세, 방어·필수소비 약세."}, "rows": [{"t": "BLOK", "b": 0.36, "a": 12.8, "n": 9}, {"t": "GDX", "b": 0.3, "a": 13.1, "n": 10}, {"t": "FNGS", "b": 0.29, "a": 7.0, "n": 7}, {"t": "SOXX", "b": 0.29, "a": 9.4, "n": 10}, {"t": "COPX", "b": 0.28, "a": 9.0, "n": 10}, {"t": "SIL", "b": 0.28, "a": 13.3, "n": 10}, {"t": "QTUM", "b": 0.28, "a": 9.1, "n": 8}, {"t": "ARTY", "b": 0.28, "a": 8.3, "n": 8}, {"t": "TAN", "b": 0.27, "a": 16.4, "n": 10}, {"t": "PBW", "b": 0.26, "a": 14.0, "n": 10}, {"t": "XLK", "b": 0.24, "a": 9.2, "n": 10}, {"t": "XME", "b": 0.23, "a": 7.1, "n": 10}, {"t": "QQQ", "b": 0.23, "a": 9.2, "n": 10}, {"t": "CIBR", "b": 0.22, "a": 8.9, "n": 10}, {"t": "DRIV", "b": 0.21, "a": 6.7, "n": 9}, {"t": "SLV", "b": 0.21, "a": 10.7, "n": 10}, {"t": "SRVR", "b": 0.2, "a": 6.3, "n": 9}, {"t": "FDN", "b": 0.2, "a": 7.8, "n": 10}, {"t": "GRID", "b": 0.19, "a": 6.8, "n": 10}, {"t": "FINX", "b": 0.19, "a": 7.1, "n": 10}, {"t": "XHB", "b": 0.19, "a": 6.0, "n": 10}, {"t": "XLY", "b": 0.19, "a": 6.4, "n": 10}, {"t": "SKYY", "b": 0.18, "a": 7.6, "n": 10}, {"t": "ROBO", "b": 0.18, "a": 6.1, "n": 10}, {"t": "ITB", "b": 0.18, "a": 6.5, "n": 10}, {"t": "XBI", "b": 0.17, "a": 7.5, "n": 10}, {"t": "IGV", "b": 0.17, "a": 8.1, "n": 10}, {"t": "BITO", "b": 0.17, "a": 0.6, "n": 3}, {"t": "RNRG", "b": 0.15, "a": 5.5, "n": 10}, {"t": "IHI", "b": 0.15, "a": 5.9, "n": 10}, {"t": "FIW", "b": 0.15, "a": 5.0, "n": 10}, {"t": "REZ", "b": 0.15, "a": 2.3, "n": 10}, {"t": "XRT", "b": 0.15, "a": 4.7, "n": 10}, {"t": "XLRE", "b": 0.15, "a": 3.4, "n": 10}, {"t": "IWM", "b": 0.14, "a": 3.4, "n": 10}, {"t": "SPY", "b": 0.14, "a": 4.5, "n": 10}, {"t": "XLV", "b": 0.12, "a": 4.6, "n": 10}, {"t": "XLC", "b": 0.12, "a": 4.3, "n": 8}, {"t": "IJH", "b": 0.12, "a": 3.1, "n": 10}, {"t": "IJR", "b": 0.12, "a": 2.7, "n": 10}, {"t": "GLD", "b": 0.12, "a": 6.5, "n": 10}, {"t": "NLR", "b": 0.11, "a": 2.1, "n": 10}, {"t": "IHE", "b": 0.1, "a": 3.6, "n": 10}, {"t": "IYT", "b": 0.09, "a": 2.2, "n": 10}, {"t": "XLU", "b": 0.09, "a": 2.4, "n": 10}, {"t": "XLI", "b": 0.09, "a": 1.9, "n": 10}, {"t": "IYZ", "b": 0.08, "a": 1.7, "n": 10}, {"t": "DIA", "b": 0.08, "a": 2.1, "n": 10}, {"t": "XLB", "b": 0.08, "a": 2.4, "n": 10}, {"t": "USO", "b": 0.06, "a": -2.0, "n": 10}, {"t": "XLP", "b": 0.06, "a": 2.3, "n": 10}, {"t": "ITA", "b": 0.06, "a": -0.3, "n": 10}, {"t": "XLF", "b": 0.05, "a": -0.2, "n": 10}, {"t": "PBJ", "b": 0.05, "a": 1.6, "n": 10}, {"t": "FCG", "b": 0.05, "a": 1.4, "n": 10}, {"t": "BETZ", "b": 0.04, "a": -0.8, "n": 7}, {"t": "KBE", "b": 0.03, "a": -2.0, "n": 10}, {"t": "OIH", "b": 0.03, "a": -0.7, "n": 10}, {"t": "KIE", "b": 0.03, "a": -0.8, "n": 10}, {"t": "KRE", "b": 0.03, "a": -2.1, "n": 10}, {"t": "UNG", "b": 0.01, "a": -1.2, "n": 10}, {"t": "PEJ", "b": 0.01, "a": -2.9, "n": 10}, {"t": "XLE", "b": -0.03, "a": -2.3, "n": 10}, {"t": "JETS", "b": -0.04, "a": -6.6, "n": 10}]}, "RC": {"meta": {"name": "침체·디스인플레", "sub": "실질↓ · BEI↓", "desc": "성장·인플레 동반 둔화(안전자산 선호). 금·리츠·유틸 강세, 에너지·원자재 약세."}, "rows": [{"t": "GDX", "b": 0.4, "a": 22.5, "n": 10}, {"t": "SIL", "b": 0.37, "a": 19.6, "n": 10}, {"t": "BLOK", "b": 0.35, "a": 19.9, "n": 8}, {"t": "SLV", "b": 0.27, "a": 14.7, "n": 10}, {"t": "FNGS", "b": 0.24, "a": 13.2, "n": 7}, {"t": "BETZ", "b": 0.23, "a": 13.1, "n": 7}, {"t": "COPX", "b": 0.22, "a": 9.3, "n": 10}, {"t": "TAN", "b": 0.22, "a": 15.1, "n": 10}, {"t": "QTUM", "b": 0.2, "a": 11.8, "n": 8}, {"t": "GLD", "b": 0.2, "a": 10.9, "n": 10}, {"t": "ARTY", "b": 0.2, "a": 11.6, "n": 8}, {"t": "SOXX", "b": 0.19, "a": 11.9, "n": 10}, {"t": "PBW", "b": 0.19, "a": 10.8, "n": 10}, {"t": "XLC", "b": 0.19, "a": 10.5, "n": 8}, {"t": "SRVR", "b": 0.18, "a": 13.2, "n": 8}, {"t": "ITB", "b": 0.18, "a": 13.3, "n": 10}, {"t": "XME", "b": 0.18, "a": 8.6, "n": 10}, {"t": "NLR", "b": 0.17, "a": 7.5, "n": 10}, {"t": "GRID", "b": 0.17, "a": 10.0, "n": 10}, {"t": "XLK", "b": 0.16, "a": 9.6, "n": 10}, {"t": "ROBO", "b": 0.16, "a": 8.3, "n": 10}, {"t": "XLRE", "b": 0.16, "a": 10.4, "n": 10}, {"t": "RNRG", "b": 0.15, "a": 9.3, "n": 10}, {"t": "REZ", "b": 0.15, "a": 9.8, "n": 10}, {"t": "IGV", "b": 0.15, "a": 9.3, "n": 10}, {"t": "XHB", "b": 0.15, "a": 10.7, "n": 10}, {"t": "FINX", "b": 0.15, "a": 9.3, "n": 10}, {"t": "ITA", "b": 0.15, "a": 9.1, "n": 10}, {"t": "QQQ", "b": 0.14, "a": 8.3, "n": 10}, {"t": "FDN", "b": 0.14, "a": 7.7, "n": 10}, {"t": "DRIV", "b": 0.14, "a": 6.9, "n": 8}, {"t": "IYZ", "b": 0.14, "a": 7.4, "n": 10}, {"t": "SKYY", "b": 0.14, "a": 8.4, "n": 10}, {"t": "XBI", "b": 0.14, "a": 8.6, "n": 10}, {"t": "XLU", "b": 0.13, "a": 7.7, "n": 10}, {"t": "PEJ", "b": 0.12, "a": 6.7, "n": 10}, {"t": "XLY", "b": 0.11, "a": 6.8, "n": 10}, {"t": "SPY", "b": 0.1, "a": 6.4, "n": 10}, {"t": "IHI", "b": 0.1, "a": 7.0, "n": 10}, {"t": "FIW", "b": 0.1, "a": 6.8, "n": 10}, {"t": "BITO", "b": 0.09, "a": 4.6, "n": 7}, {"t": "CIBR", "b": 0.09, "a": 6.3, "n": 10}, {"t": "JETS", "b": 0.09, "a": 5.4, "n": 10}, {"t": "IWM", "b": 0.09, "a": 5.6, "n": 10}, {"t": "XLB", "b": 0.09, "a": 5.3, "n": 10}, {"t": "XRT", "b": 0.09, "a": 4.6, "n": 10}, {"t": "DIA", "b": 0.08, "a": 5.1, "n": 10}, {"t": "IHE", "b": 0.08, "a": 4.3, "n": 10}, {"t": "XLI", "b": 0.08, "a": 5.5, "n": 10}, {"t": "XLP", "b": 0.07, "a": 4.5, "n": 10}, {"t": "IJH", "b": 0.07, "a": 4.4, "n": 10}, {"t": "IJR", "b": 0.07, "a": 4.7, "n": 10}, {"t": "XLV", "b": 0.06, "a": 3.4, "n": 10}, {"t": "IYT", "b": 0.06, "a": 4.1, "n": 10}, {"t": "XLF", "b": 0.05, "a": 3.9, "n": 10}, {"t": "PBJ", "b": 0.05, "a": 3.2, "n": 10}, {"t": "USO", "b": 0.05, "a": -0.2, "n": 10}, {"t": "KIE", "b": 0.04, "a": 3.5, "n": 10}, {"t": "KBE", "b": 0.03, "a": 3.9, "n": 10}, {"t": "KRE", "b": 0.01, "a": 2.9, "n": 10}, {"t": "XLE", "b": 0.01, "a": -1.2, "n": 10}, {"t": "FCG", "b": -0.05, "a": -5.7, "n": 10}, {"t": "OIH", "b": -0.05, "a": -5.3, "n": 10}, {"t": "UNG", "b": -0.14, "a": -10.0, "n": 10}]}, "TG": {"meta": {"name": "긴축·디스인플레", "sub": "실질↑ · BEI↓", "desc": "실질↑+기대인플레↓(가장 힘든 국면). 헬스케어·방산·귀금속 상대강세, 고밸류·크립토·에너지 약세."}, "rows": [{"t": "SOXX", "b": 0.15, "a": 2.3, "n": 11}, {"t": "XBI", "b": 0.13, "a": -1.0, "n": 11}, {"t": "IHE", "b": 0.12, "a": 1.9, "n": 11}, {"t": "XLV", "b": 0.12, "a": 2.1, "n": 11}, {"t": "SLV", "b": 0.12, "a": -1.1, "n": 11}, {"t": "ITA", "b": 0.1, "a": 1.0, "n": 11}, {"t": "JETS", "b": 0.09, "a": 0.9, "n": 11}, {"t": "KIE", "b": 0.09, "a": 1.9, "n": 11}, {"t": "XLF", "b": 0.09, "a": 1.0, "n": 11}, {"t": "COPX", "b": 0.08, "a": 0.1, "n": 11}, {"t": "XLK", "b": 0.07, "a": 0.5, "n": 11}, {"t": "DIA", "b": 0.07, "a": 0.9, "n": 11}, {"t": "IYT", "b": 0.05, "a": -0.6, "n": 11}, {"t": "XLI", "b": 0.05, "a": -0.3, "n": 11}, {"t": "GLD", "b": 0.05, "a": -0.4, "n": 11}, {"t": "IHI", "b": 0.05, "a": -1.2, "n": 11}, {"t": "QQQ", "b": 0.04, "a": -1.2, "n": 11}, {"t": "SPY", "b": 0.04, "a": -0.5, "n": 11}, {"t": "QTUM", "b": 0.04, "a": -0.9, "n": 7}, {"t": "KBE", "b": 0.03, "a": -0.9, "n": 11}, {"t": "XLP", "b": 0.03, "a": 0.7, "n": 11}, {"t": "ROBO", "b": 0.02, "a": -2.4, "n": 11}, {"t": "KRE", "b": 0.02, "a": -1.1, "n": 11}, {"t": "CIBR", "b": 0.02, "a": -0.6, "n": 11}, {"t": "GDX", "b": 0.01, "a": -2.8, "n": 11}, {"t": "IGV", "b": 0.01, "a": -2.4, "n": 11}, {"t": "XLU", "b": 0.01, "a": -0.4, "n": 11}, {"t": "XME", "b": 0.0, "a": -2.3, "n": 11}, {"t": "IJH", "b": -0.01, "a": -1.9, "n": 11}, {"t": "XLB", "b": -0.01, "a": -1.6, "n": 11}, {"t": "IJR", "b": -0.01, "a": -2.2, "n": 11}, {"t": "FIW", "b": -0.02, "a": -2.9, "n": 11}, {"t": "XLE", "b": -0.02, "a": 1.4, "n": 11}, {"t": "RNRG", "b": -0.02, "a": -2.7, "n": 11}, {"t": "IWM", "b": -0.02, "a": -2.8, "n": 11}, {"t": "SKYY", "b": -0.03, "a": -3.7, "n": 11}, {"t": "XLY", "b": -0.03, "a": -3.6, "n": 11}, {"t": "ARTY", "b": -0.03, "a": -3.9, "n": 9}, {"t": "TAN", "b": -0.03, "a": -4.8, "n": 11}, {"t": "PBJ", "b": -0.04, "a": -1.2, "n": 11}, {"t": "DRIV", "b": -0.04, "a": -4.3, "n": 9}, {"t": "PEJ", "b": -0.04, "a": -3.0, "n": 11}, {"t": "REZ", "b": -0.04, "a": -2.6, "n": 11}, {"t": "GRID", "b": -0.04, "a": -3.0, "n": 11}, {"t": "SIL", "b": -0.04, "a": -5.1, "n": 11}, {"t": "PBW", "b": -0.05, "a": -7.2, "n": 11}, {"t": "NLR", "b": -0.05, "a": -3.0, "n": 11}, {"t": "UNG", "b": -0.05, "a": 3.4, "n": 11}, {"t": "XHB", "b": -0.06, "a": -3.8, "n": 11}, {"t": "ITB", "b": -0.06, "a": -4.1, "n": 11}, {"t": "FCG", "b": -0.07, "a": -0.2, "n": 11}, {"t": "XLRE", "b": -0.07, "a": -3.4, "n": 11}, {"t": "FINX", "b": -0.07, "a": -6.0, "n": 11}, {"t": "OIH", "b": -0.08, "a": -3.0, "n": 11}, {"t": "FDN", "b": -0.08, "a": -5.6, "n": 11}, {"t": "IYZ", "b": -0.08, "a": -4.1, "n": 11}, {"t": "XRT", "b": -0.11, "a": -5.8, "n": 11}, {"t": "USO", "b": -0.11, "a": -1.4, "n": 11}, {"t": "FNGS", "b": -0.12, "a": -6.8, "n": 7}, {"t": "BETZ", "b": -0.13, "a": -8.3, "n": 7}, {"t": "XLC", "b": -0.14, "a": -7.0, "n": 9}, {"t": "SRVR", "b": -0.16, "a": -6.7, "n": 9}, {"t": "BLOK", "b": -0.19, "a": -11.9, "n": 9}, {"t": "BITO", "b": -0.46, "a": -22.1, "n": 6}]}};
+const ORDER = ["RF","ST","RC","TG"];
+const COLS = { rank:"num", t:"str", b:"num", a:"num", n:"num" };
+let cur = "RF";
+let sortKey = "b", sortDir = -1;   // 기본: β 내림차순
+
+// rank 부여(β 내림차순 기준 고정 정체성)
+for(const q of ORDER){
+  const rows = DATA[q].rows.slice().sort((x,y)=>y.b-x.b);
+  rows.forEach((r,i)=>r.rank=i+1);
+  DATA[q].rows = rows;
+  DATA[q].maxAbs = Math.max(...rows.map(r=>Math.abs(r.b)), 0.01);
+}
+
+const tabs = document.getElementById("tabs");
+ORDER.forEach(q=>{
+  const m = DATA[q].meta;
+  const b = document.createElement("button");
+  b.className="tab"; b.role="tab"; b.dataset.q=q;
+  b.setAttribute("aria-selected", q===cur);
+  b.innerHTML = `<span class="code">${q}</span><span class="nm">${m.name}</span><span class="sub">${m.sub}</span>`;
+  b.onclick = ()=>{ cur=q; document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected", t.dataset.q===q)); render(); };
+  tabs.appendChild(b);
+});
+
+document.querySelectorAll("#hrow th").forEach(th=>{
+  th.onclick = ()=>{
+    const k = th.dataset.k;
+    if(k===sortKey){ sortDir*=-1; }
+    else { sortKey=k; sortDir = (COLS[k]==="str") ? 1 : -1; }
+    render();
+  };
+});
+
+function fmtB(v){ return (v>0?"+":v<0?"−":"") + Math.abs(v).toFixed(2); }
+function fmtA(v){ return (v>0?"+":v<0?"−":"") + Math.abs(v).toFixed(1); }
+
+function render(){
+  const d = DATA[cur];
+  document.getElementById("desc").innerHTML =
+    `<b>${cur} · ${d.meta.name}</b> <span class="num" style="color:var(--faint)">(${d.meta.sub})</span> — ${d.meta.desc}`;
+
+  const rows = d.rows.slice().sort((x,y)=>{
+    let r;
+    if(COLS[sortKey]==="str") r = x[sortKey]<y[sortKey]?-1:x[sortKey]>y[sortKey]?1:0;
+    else r = x[sortKey]-y[sortKey];
+    return r*sortDir;
+  });
+
+  // header arrows
+  document.querySelectorAll("#hrow th").forEach(th=>{
+    const on = th.dataset.k===sortKey;
+    th.setAttribute("aria-sort", on ? (sortDir>0?"ascending":"descending") : "none");
+    th.querySelector(".arw").textContent = on ? (sortDir>0?"▲":"▼") : "▲";
+  });
+
+  const tb = document.getElementById("tb");
+  tb.innerHTML = rows.map(r=>{
+    const pos = r.b>0, neg = r.b<0;
+    const w = (Math.abs(r.b)/d.maxAbs)*50;   // % of half-bar
+    const fill = pos ? `<span class="fill p" style="width:${w}%"></span>`
+                     : neg ? `<span class="fill n" style="width:${w}%"></span>` : "";
+    const lown = r.n<=7 ? `<span class="lown" title="블록수 ${r.n} — 신뢰도 낮음">ⁿ</span>` : "";
+    const acls = r.a>0?"p":r.a<0?"n":"";
+    return `<tr>
+      <td class="rank num">${r.rank}</td>
+      <td class="tk">${r.t}${lown}</td>
+      <td class="beta"><div class="betacell">
+        <span class="bval num ${pos?'p':neg?'n':''}">${fmtB(r.b)}</span>
+        <span class="bar">${fill}</span>
+      </div></td>
+      <td class="avg num ${acls}">${fmtA(r.a)}</td>
+      <td class="n num">${r.n}</td>
+    </tr>`;
+  }).join("");
+}
+render();
+</script>
