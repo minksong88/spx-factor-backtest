@@ -1,0 +1,38 @@
+# part 1: linear IC (expanding-window macro beta) by recent lookback
+section,lookback,ic_macro,ic_recent,corr_macro_recent,ir_macro,ir_recent,nblocks
+linear_ic,prior_regime,0.116,-0.035,0.047,0.45,-0.11,34
+linear_ic,1M,0.116,0.019,0.069,0.45,0.06,34
+linear_ic,2W,0.116,0.024,0.009,0.45,0.08,34
+linear_ic,1W,0.116,0.007,0.023,0.45,0.02,34
+# part 2: macro IC within 2W recent tercile (interaction/gate)
+section,recent2w_tercile,ic_macro_within,ir,nblocks,,,
+macro_ic_by_recent,1_laggard,0.007,0.02,34,,,
+macro_ic_by_recent,2_mid,0.116,0.31,34,,,
+macro_ic_by_recent,3_leader,0.114,0.29,34,,,
+# part 3: 5x5 grid mean within-regime excess return % (macro_q x recent2w_q)
+section,macro_quintile,recent2w_quintile,avg_fwd_excess_pct,n,,
+grid5x5,1,1,-0.94,116,,
+grid5x5,1,2,-0.75,72,,
+grid5x5,1,3,-2.87,65,,
+grid5x5,1,4,-0.99,69,,
+grid5x5,1,5,-3.42,107,,
+grid5x5,2,1,-1.85,61,,
+grid5x5,2,2,0.60,88,,
+grid5x5,2,3,-2.54,100,,
+grid5x5,2,4,-0.58,101,,
+grid5x5,2,5,0.48,74,,
+grid5x5,3,1,-0.79,67,,
+grid5x5,3,2,0.00,106,,
+grid5x5,3,3,1.98,101,,
+grid5x5,3,4,-0.78,101,,
+grid5x5,3,5,-0.48,48,,
+grid5x5,4,1,-0.31,77,,
+grid5x5,4,2,0.61,89,,
+grid5x5,4,3,-0.31,96,,
+grid5x5,4,4,1.01,87,,
+grid5x5,4,5,-1.48,70,,
+grid5x5,5,1,0.22,108,,
+grid5x5,5,2,0.73,69,,
+grid5x5,5,3,3.56,61,,
+grid5x5,5,4,4.25,61,,
+grid5x5,5,5,5.24,101,,
