@@ -17,7 +17,13 @@
 #
 #   실행:    SUPABASE_DB_URL 환경변수(또는 리포 루트 .env) 설정 후
 #              python src/regime_asset_scores.py
-#            산출: results/regime_scores/regime_asset_scores_<YYYY-MM-DD>.csv (+ .md)
+#            산출(날짜 안 쌓고 같은 파일 덮어씀):
+#              results/regime_scores/regime_RF.csv  (리플레이션)
+#              results/regime_scores/regime_ST.csv  (스태그·완화기대)
+#              results/regime_scores/regime_RC.csv  (침체·디스인플레)
+#              results/regime_scores/regime_TG.csv  (긴축·디스인플레)
+#              results/regime_scores/README.md      (요약 + 읽는 법 + 마지막 갱신일)
+#            각 CSV = 그 국면만, β 내림차순. 컬럼: rank,ticker,beta,avg_ret_pct,n_blocks,quadrant,regime
 #
 #   파라미터(hyo 계보와 동일): LAM=5000, MIN_DAYS_LEG=10, MIN_DREAL=0.15
 # ============================================================
@@ -229,36 +235,54 @@ def compute_scores(blocks, px):
         .sort_values(["quadrant", "rank"]).reset_index(drop=True)
 
 
-# ---------------- 출력 ----------------
-def write_md(g, blocks, date_str, path):
+# ---------------- 출력 (날짜 안 쌓고 같은 파일 덮어씀) ----------------
+CSV_COLS = ["rank", "ticker", "beta", "avg_ret_pct", "n_blocks", "quadrant", "regime"]
+
+
+def write_regime_csvs(g, outdir):
+    """국면별로 분리해 regime_<Q>.csv 4개를 β 내림차순으로 덮어씀."""
+    for q in ["RF", "ST", "RC", "TG"]:
+        sub = g[g["quadrant"] == q].sort_values("beta", ascending=False).reset_index(drop=True)
+        sub = sub.copy()
+        sub["rank"] = range(1, len(sub) + 1)
+        sub[CSV_COLS].to_csv(os.path.join(outdir, f"regime_{q}.csv"),
+                             index=False, encoding="utf-8-sig")
+
+
+def write_readme(g, blocks, date_str, path):
     order = ["RF", "ST", "RC", "TG"]
     nblk = {q: sum(1 for b in blocks if b["quad"] == q) for q in order}
     L = []
-    L.append(f"# 국면별 ETF 롱숏 스코어 맵 — 스냅샷 {date_str}\n")
-    L.append("> **국면축 = 실질금리(TIPS `GTII10 Govt`) × 기대인플레(BEI `USGGBE10 Index`) 4사분면.**")
-    L.append("> **β = 그 국면에서 실질금리 1%p 움직일 때 자산의 % 반응** = mean(블록수익 / |Δ실질|), 오라클(전체표본).")
-    L.append(f"> 유니버스 = ETF {len(UNIVERSE)}종. 원자료: `regime_asset_scores_{date_str}.csv`. 갱신: `src/regime_asset_scores.py`.\n")
-    L.append("## 읽는 법")
-    L.append("- **β 부호 = 방향**((+)롱 후보 / (−)숏 후보). **크기 비교는 같은 국면 안에서만** (국면끼리 β 절대값 비교 금지).")
+    L.append("# 국면별 ETF 롱숏 스코어 맵\n")
+    L.append(f"> **마지막 갱신: {date_str}** (갱신 시 이 파일과 아래 CSV들을 **덮어씀** — 날짜 파일 안 쌓음)")
+    L.append("> 계산 코드: **`src/regime_asset_scores.py`** — `python src/regime_asset_scores.py` 로 재생성.\n")
+    L.append("## 파일 구성 (국면별로 분리)")
+    L.append("| 국면 | 파일 | 뜻 |")
+    L.append("|---|---|---|")
+    for q in order:
+        L.append(f"| **{q}** | `regime_{q}.csv` | {QNAME[q]} |")
+    L.append("")
+    L.append("각 CSV 컬럼: `rank, ticker, beta, avg_ret_pct, n_blocks, quadrant, regime`. "
+             "**β 내림차순 정렬**(rank 1 = 그 국면 최강 롱). 뷰어에서 자유 정렬.\n")
+    L.append("## 읽는 법 (중요)")
+    L.append("- **β 부호 = 방향**((+)롱 후보 / (−)숏 후보). β = 실질금리 1%p당 자산 % 반응 = mean(블록수익 / |Δ실질|), 오라클(전체표본).")
+    L.append("- **β 크기 비교는 같은 국면(=같은 파일) 안에서만** — 국면끼리 β 절대값 비교 금지(국면마다 Δ실질 스케일 다름).")
     L.append("- **avg% = 그 국면 평균 매수후보유 수익률**(체감용). **n_blocks 작으면(≤7) 신뢰도 낮음.**")
-    L.append("- 직전 상대수익(리버설/모멘텀) 필터는 붙이지 말 것 — 실시간에선 위험조정수익을 못 올림. 이 표는 국면을 사람이 정하고 쓰는 방향표.\n")
+    L.append("- 직전 상대수익(리버설/모멘텀) 필터는 붙이지 말 것 — 실시간에선 위험조정수익을 못 올림. 국면을 사람이 정하고 쓰는 방향표.\n")
+    L.append("## 국면별 요약 (롱 top3 / 숏 bottom3)")
+    L.append("| 국면 | 대표 롱 (β 상위) | 대표 숏 (β 하위) |")
+    L.append("|---|---|---|")
     for q in order:
         sub = g[g["quadrant"] == q].sort_values("beta", ascending=False)
-        top = sub.head(6)
-        bot = sub.tail(6).iloc[::-1]
-        L.append(f"## {q} — {QNAME[q]} · n≈{nblk[q]}블록")
-        L.append(QDESC[q] + "\n")
-        L.append("| 롱 (β 상위) | β | avg% | | 숏 (β 하위) | β | avg% |")
-        L.append("|---|---|---|---|---|---|---|")
-        for (_, lo), (_, sh) in zip(top.iterrows(), bot.iterrows()):
-            L.append(f"| {lo.ticker} | {lo.beta:+.2f} | {lo.avg_ret_pct:+.1f} | "
-                     f"| {sh.ticker} | {sh.beta:+.2f} | {sh.avg_ret_pct:+.1f} |")
-        L.append("")
+        longs = " · ".join(sub.head(3)["ticker"].tolist())
+        shorts = " · ".join(sub.tail(3).iloc[::-1]["ticker"].tolist())
+        L.append(f"| **{q}** {QNAME[q]} · n≈{nblk[q]} | {longs} | {shorts} |")
+    L.append("")
     L.append("## 갱신 방법")
-    L.append("- 직접: `SUPABASE_DB_URL` 설정 후 `python src/regime_asset_scores.py` → 새 날짜 CSV+MD 생성.")
-    L.append("- 또는 \"국면 스코어맵 최신 데이터로 갱신해줘\"라고 시키면 재계산해 커밋.\n")
+    L.append("- 직접: `SUPABASE_DB_URL` 설정 후 `python src/regime_asset_scores.py` → README와 `regime_*.csv` 4개를 **같은 이름으로 덮어씀**.")
+    L.append("- 또는 \"국면 스코어맵 갱신해줘\"라고 시키면 재계산해 같은 파일들 덮어쓰고 커밋(날짜 안 쌓음).\n")
     L.append("## 한계")
-    L.append("- 전부 오라클(전체표본·완벽 국면타이밍) β → 실시간 매매성과와 다름(실시간은 국면판정 비용으로 하락). 방향표로만 사용. gross(무비용).")
+    L.append("- 전부 오라클(전체표본·완벽 국면타이밍) β → 실시간 매매성과와 다름. 방향표로만 사용. gross(무비용).")
     open(path, "w", encoding="utf-8").write("\n".join(L) + "\n")
 
 
@@ -286,13 +310,12 @@ def main():
     px = _prices(engine, UNIVERSE)
     g = compute_scores(blocks, px)
 
-    print("[4/4] 저장…")
-    csv_path = os.path.join(outdir, f"regime_asset_scores_{date_str}.csv")
-    md_path = os.path.join(outdir, f"regime_asset_scores_{date_str}.md")
-    g.to_csv(csv_path, index=False, encoding="utf-8-sig")
-    write_md(g, blocks, date_str, md_path)
-    print("  ->", csv_path, f"({len(g)}행)")
-    print("  ->", md_path)
+    print("[4/4] 저장 (국면별 CSV 4개 + README, 덮어쓰기)…")
+    write_regime_csvs(g, outdir)
+    write_readme(g, blocks, date_str, os.path.join(outdir, "README.md"))
+    for q in ["RF", "ST", "RC", "TG"]:
+        print("  ->", os.path.join("results/regime_scores", f"regime_{q}.csv"))
+    print("  -> results/regime_scores/README.md  (마지막 갱신:", date_str + ")")
 
 
 if __name__ == "__main__":
