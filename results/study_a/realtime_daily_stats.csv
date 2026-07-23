@@ -1,0 +1,3 @@
+﻿,total_pct,CAGR_pct,vol_pct,sharpe,MDD_pct,days
+realtime 매크로단독(base),265.0,17.2,13.8,1.28,-14.7,1942.0
+realtime + 2W리버설(logic),103.0,9.1,23.8,0.51,-66.4,1942.0
