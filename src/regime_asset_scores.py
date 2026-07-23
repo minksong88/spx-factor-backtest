@@ -252,9 +252,11 @@ def write_regime_csvs(g, outdir):
 def write_readme(g, blocks, date_str, path):
     order = ["RF", "ST", "RC", "TG"]
     nblk = {q: sum(1 for b in blocks if b["quad"] == q) for q in order}
+    last_data = max((b["end"] for b in blocks), default=None)
+    last_data = last_data.date().isoformat() if last_data is not None else "?"
     L = []
     L.append("# 국면별 ETF 롱숏 스코어 맵\n")
-    L.append(f"> **마지막 갱신: {date_str}** (갱신 시 이 파일과 아래 CSV들을 **덮어씀** — 날짜 파일 안 쌓음)")
+    L.append(f"> **마지막 갱신: {date_str}** (데이터 {last_data}까지 · 갱신 시 이 파일과 아래 CSV들을 **덮어씀** — 날짜 파일 안 쌓음)")
     L.append("> 계산 코드: **`src/regime_asset_scores.py`** — `python src/regime_asset_scores.py` 로 재생성.\n")
     L.append("## 파일 구성 (국면별로 분리)")
     L.append("| 국면 | 파일 | 뜻 |")
